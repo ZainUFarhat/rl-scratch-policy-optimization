@@ -1,4 +1,4 @@
-# My From Scratch RL Policy Optimization Algorithms Implementations
+# RL Policy Optimization from Scratch
 
 ## Overview
 

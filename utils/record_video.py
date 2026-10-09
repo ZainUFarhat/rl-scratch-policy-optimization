@@ -1,58 +1,26 @@
-"""
-Load a saved policy (torch.save(policy.state_dict(), path)) and record a GIF
-of one episode.
-
-Before this will run, fill in PolicyNetwork below with your actual
-architecture (same shape as whatever you trained) and set how you pick an
-action from its output (see get_action).
-
-Usage:
-    python utils/record_video.py --env CartPole-v1 --policy runs/reinforce_CartPole-v1_0/policy.pt --out rollout.gif
-"""
+import sys
 import argparse
+from pathlib import Path
+
+import torch
+
+import imageio
 
 import gymnasium as gym
-import imageio
-import torch
-import torch.nn as nn
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from reinforce import Policy
 
-class PolicyNetwork(nn.Module):
-    """
-    PLACEHOLDER - replace this with your actual network definition.
-    It must match the architecture you trained, so that load_state_dict
-    below succeeds.
-    """
-
-    def __init__(self, obs_dim: int, act_dim: int):
-        super().__init__()
-        raise NotImplementedError(
-            "Define your policy network here to match what you trained, "
-            "then remove this line."
-        )
-
-    def forward(self, obs):
-        raise NotImplementedError
-
-
-def get_action(policy: PolicyNetwork, obs):
-    """
-    PLACEHOLDER - replace with however you turn policy(obs) into an action.
-    e.g. argmax over logits for a deterministic rollout, or sample from the
-    action distribution your algorithm uses.
-    """
-    raise NotImplementedError(
-        "Define how to turn the policy's output into an env action, "
-        "then remove this line."
-    )
-
+def get_action(policy: Policy, obs):
+    logits = policy(torch.as_tensor(obs, dtype = torch.float32))
+    return int(torch.argmax(logits).item())
 
 def record(env_id: str, policy_path: str, out_path: str, max_steps: int = 1000):
     env = gym.make(env_id, render_mode="rgb_array")
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.n  # change if your action space isn't Discrete
 
-    policy = PolicyNetwork(obs_dim, act_dim)
+    policy = Policy(obs_dim, 64, act_dim)
     policy.load_state_dict(torch.load(policy_path, map_location="cpu"))
     policy.eval()
 
@@ -68,8 +36,8 @@ def record(env_id: str, policy_path: str, out_path: str, max_steps: int = 1000):
                 break
 
     env.close()
-    imageio.mimsave(out_path, frames, fps=30)
-    print(f"wrote {out_path} ({len(frames)} frames)")
+    imageio.mimsave(out_path, frames[::2], duration=1000 / 30, loop=0)
+    print(f"wrote {out_path} ({len(frames)} env steps)")
 
 
 def main():

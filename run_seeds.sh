@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Run a training script with seeds 0..4.
-# Usage: ./run_seeds.sh reinforce.py --env CartPole-v1
 set -euo pipefail
 
 if [ $# -lt 1 ]; then
