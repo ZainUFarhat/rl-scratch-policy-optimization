@@ -42,6 +42,13 @@ class Policy(nn.Module):
     def compute_loss(self, obs, act, returns):
         logp = self.get_policy(obs).log_prob(act)
         return -(logp * returns).mean()
+    
+    def reward_to_go(self, rewards):
+        n = len(rewards)
+        reward_to_go = np.zeros(n, dtype=np.float32)
+        for i in reversed(range(n)):
+            reward_to_go[i] = rewards[i] + (reward_to_go[i+1] if i+1 < n else 0)
+        return reward_to_go
 
 def train(epochs, agent, optimizer, env, csv_writer=None, seed=None):
     episode_idx = 0
@@ -60,7 +67,7 @@ def train(epochs, agent, optimizer, env, csv_writer=None, seed=None):
                     eps_return, eps_len = sum(eps_rew), len(eps_rew)
                     batch_returns.append(eps_return)
                     batch_lengths.append(eps_len)
-                    batch_weights += [eps_return] * eps_len
+                    batch_weights += list(agent.reward_to_go(eps_rew))
                     if csv_writer is not None:
                         csv_writer.writerow([episode_idx, eps_return, eps_len])
                     episode_idx += 1
@@ -87,7 +94,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", default="CartPole-v1")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--hidden-dim", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-2)
     args = parser.parse_args()
